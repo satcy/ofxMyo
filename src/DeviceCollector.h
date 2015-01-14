@@ -7,9 +7,13 @@
 
 #include <myo/myo.hpp>
 
+class DeviceCollector;
+
 class Device{
     
 public:
+    friend DeviceCollector;
+    
     Device() : onArm(false), roll_w(0), pitch_w(0), yaw_w(0), currentPose()
     {
         emgSamples.resize(8);
@@ -23,7 +27,32 @@ public:
         isUnlocked = false;
         emgSamples.resize(8);
     }
-public:
+    
+    int getId() { return id; }
+    
+    ofVec3f getAccel(){ return accel; }
+    
+    ofVec3f getGyro(){ return gyro; }
+    
+    ofQuaternion getQuaternion() { return q; }
+    
+    myo::Pose getPose() { return currentPose; }
+    
+    bool getOnArm() { return onArm; }
+    bool getIsUnlocked() { return isUnlocked; }
+    
+    myo::Arm getWhichArm(){ return whichArm; }
+    
+    std::vector<int> getEmgSamples() { return emgSamples; }
+    
+    float getRoll() { return roll; }
+    
+    float getPitch() { return pitch; }
+    
+    float getYaw() { return yaw; }
+    
+    
+protected:
     myo::Myo * myo;
     int id;
     
@@ -33,8 +62,11 @@ public:
     bool isUnlocked;
     
     int roll_w, pitch_w, yaw_w;
-    float w, x, y, z, roll, pitch, yaw, a_x, a_y, a_z, g_x, g_y, g_z;
+    float roll, pitch, yaw;
     myo::Pose currentPose;
+    
+    ofVec3f accel;
+    ofVec3f gyro;
     
     ofQuaternion q;
     
@@ -73,6 +105,7 @@ public:
     
     void onEmgData(myo::Myo* myo, uint64_t timestamp, const int8_t* emg)
     {
+        cout << emg[0] << endl;
         Device * device = findDevice(myo);
         if ( device ) {
             for (int i = 0; i < 8; i++) {
@@ -85,9 +118,9 @@ public:
 	{
         Device * device = findDevice(myo);
         if ( device ) {
-            device->a_x = accel.x();
-            device->a_y = accel.y();
-            device->a_z = accel.z();
+            device->accel.x = accel.x();
+            device->accel.y = accel.y();
+            device->accel.z = accel.z();
         }
 	}
     
@@ -97,9 +130,9 @@ public:
         
         Device * device = findDevice(myo);
         if ( device ) {
-            device->g_x = gyro.x();
-            device->g_y = gyro.y();
-            device->g_z = gyro.z();
+            device->gyro.x = gyro.x();
+            device->gyro.y = gyro.y();
+            device->gyro.z = gyro.z();
         }
         
 	}
