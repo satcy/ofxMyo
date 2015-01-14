@@ -27,7 +27,7 @@ void ofApp::draw(){
         s << myo.getDevices()[i]->g_x << ",";
         s << myo.getDevices()[i]->g_y << ",";
         s << myo.getDevices()[i]->g_z << endl;
-        s << "quatanion:      ";
+        s << "quaternion:      ";
         s << myo.getDevices()[i]->q.x() << ",";
         s << myo.getDevices()[i]->q.y() << ",";
         s << myo.getDevices()[i]->q.z() << ",";
