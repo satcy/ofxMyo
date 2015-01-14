@@ -40,6 +40,7 @@ public:
     
     bool getOnArm() { return onArm; }
     bool getIsUnlocked() { return isUnlocked; }
+    bool getIsConnect() { return isConnect; }
     
     myo::Arm getWhichArm(){ return whichArm; }
     
@@ -60,6 +61,7 @@ protected:
     myo::Arm whichArm;
     
     bool isUnlocked;
+    bool isConnect;
     
     int roll_w, pitch_w, yaw_w;
     float roll, pitch, yaw;
@@ -82,17 +84,15 @@ public:
     
     void onPair(myo::Myo* myo, uint64_t timestamp, myo::FirmwareVersion firmwareVersion)
     {
-        
+        myo->setStreamEmg(myo::Myo::streamEmgEnabled);
         if ( !findDevice(myo) ) {
             Device * device = findDevice(myo);
             device = new Device();
             device->myo = myo;
             device->id = devices.size();
             devices.push_back(device);
-            myo->setStreamEmg(myo::Myo::streamEmgEnabled);
             std::cout << "Paired with " << device->id << "." << std::endl;
         }
-        
     }
     
     void onUnpair(myo::Myo* myo, uint64_t timestamp)
@@ -105,7 +105,6 @@ public:
     
     void onEmgData(myo::Myo* myo, uint64_t timestamp, const int8_t* emg)
     {
-        cout << emg[0] << endl;
         Device * device = findDevice(myo);
         if ( device ) {
             for (int i = 0; i < 8; i++) {
@@ -171,9 +170,6 @@ public:
         Device * device = findDevice(myo);
         if ( device ) {
             device->currentPose = pose;
-        
-        
-            // Vibrate the Myo whenever we've detected that the user has made a fist.
 //            if (pose == myo::Pose::fist) {
 //                myo->vibrate(myo::Myo::vibrationShort);
 //            }
@@ -196,6 +192,21 @@ public:
         Device * device = findDevice(myo);
         if ( device ) {
             device->onArm = false;
+        }
+    }
+    
+    void onConnect(myo::Myo* myo, uint64_t timestamp, myo::FirmwareVersion firmwareVersion) {
+        myo->setStreamEmg(myo::Myo::streamEmgEnabled);
+        Device * device = findDevice(myo);
+        if ( device ) {
+            device->isConnect = true;
+        }
+    }
+    
+    void onDisconnect(myo::Myo* myo, uint64_t timestamp) {
+        Device * device = findDevice(myo);
+        if ( device ) {
+            device->isConnect = false;
         }
     }
     

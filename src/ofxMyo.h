@@ -8,9 +8,14 @@
 
 class ofxMyo : public ofThread{
 private:
+    int duration;
+    string identifier;
     DeviceCollector collector;
+    
 public:
-    void setup(){
+    void setup(int dur = 1, string ident = "net.satcy.ofxMyo"){
+        duration = dur;
+        identifier = ident;
         startThread();
     }
     
@@ -29,14 +34,17 @@ public:
         {
             if(lock())
             {
-                myo::Hub hub("net.satcy.ofxMyo");
-                
-                hub.addListener(&collector);
-                
-                while(1){
-                    hub.run(1);
+                try {
+                    myo::Hub hub(identifier);
+                    
+                    hub.addListener(&collector);
+                    
+                    while(1){
+                        hub.run(duration);
+                    }
+                } catch(const std::exception& e) {
+                    
                 }
-                
                 unlock();
                 
             }
