@@ -5,53 +5,68 @@
 #include <stdexcept>
 #include <string>
 
+#include "ofMain.h"
 #include <myo/myo.hpp>
 
+namespace ofxMyo{
+    
 class DeviceCollector;
 
 class Device{
+friend DeviceCollector;
     
 public:
-    friend DeviceCollector;
     
-    Device() : onArm(false), roll_w(0), pitch_w(0), yaw_w(0), currentPose()
-    {
-        emgSamples.resize(8);
-    }
+    Device();
     
-    void reset(){
-        roll_w = 0;
-        pitch_w = 0;
-        yaw_w = 0;
-        onArm = false;
-        isUnlocked = false;
-        emgSamples.resize(8);
-    }
+    void reset();
     
-    int getId() { return id; }
+    int getId() ;
+    void setId( int v);
     
-    ofVec3f getAccel(){ return accel; }
+    ofVec3f getAccel();
+    void setAccel(ofVec3f v) ;
     
-    ofVec3f getGyro(){ return gyro; }
+    ofVec3f getGyro();
+    void setGyro(ofVec3f v) ;
     
-    ofQuaternion getQuaternion() { return q; }
+    ofQuaternion getQuaternion() ;
+    void setQuaternion(ofQuaternion v) ;
     
-    myo::Pose getPose() { return currentPose; }
+    myo::Pose getPose() ;
+    void setPose(myo::Pose v) ;
     
-    bool getOnArm() { return onArm; }
-    bool getIsUnlocked() { return isUnlocked; }
-    bool getIsConnect() { return isConnect; }
+    bool getOnArm() ;
+    void setOnArm(bool b) ;
+    bool getIsUnlocked() ;
+    void setIsUnlocked(bool b) ;
+    bool getIsConnect();
+    void setIsConnect(bool b);
     
-    myo::Arm getWhichArm(){ return whichArm; }
+    myo::Arm getWhichArm();
+    void setWhichArm(myo::Arm v) ;
     
-    std::vector<int> getEmgSamples() { return emgSamples; }
+    std::vector<int> getEmgSamples() ;
+    void setEmgSamples(std::vector<int> vals);
     
-    float getRoll() { return roll; }
+    float getRoll();
+    void setRoll(float v);
     
-    float getPitch() { return pitch; }
+    float getPitch();
+    void setPitch(float v);
     
-    float getYaw() { return yaw; }
+    float getYaw();
+    void setYaw(float v) ;
     
+    ofVec3f getLinearAccel();
+    void setLinearAccel(ofVec3f v) ;
+    
+    float getGravity();
+    void setGravity(float val);
+//    float getLastTimef() { return last_timef; }
+//    void setLastTimef(float t) { last_timef = t; }
+//    float getTimef() { return timef; }
+//    void setTimef(float t) { timef = t; }
     
 protected:
     myo::Myo * myo;
@@ -73,170 +88,38 @@ protected:
     ofQuaternion q;
     
     std::vector<int> emgSamples;
+    
+    float gravity = 0.98;
+    
+    ofVec3f linear_accel;
+//
+//    ofMatrix4x4 currentRotationMatrix;
+//    float last_timef;
+//    float timef;
 };
 
 
 class DeviceCollector : public myo::DeviceListener {
+    
+friend Device;
 public:
-    DeviceCollector()
-    {
-    }
-    
-    void onPair(myo::Myo* myo, uint64_t timestamp, myo::FirmwareVersion firmwareVersion)
-    {
-        myo->setStreamEmg(myo::Myo::streamEmgEnabled);
-        if ( !findDevice(myo) ) {
-            Device * device = findDevice(myo);
-            device = new Device();
-            device->myo = myo;
-            device->id = devices.size();
-            devices.push_back(device);
-            std::cout << "Paired with " << device->id << "." << std::endl;
-        }
-    }
-    
-    void onUnpair(myo::Myo* myo, uint64_t timestamp)
-    {
-        Device * device = findDevice(myo);
-        if ( device ) {
-            device->reset();
-        }
-    }
-    
-    void onEmgData(myo::Myo* myo, uint64_t timestamp, const int8_t* emg)
-    {
-        Device * device = findDevice(myo);
-        if ( device ) {
-            for (int i = 0; i < 8; i++) {
-                device->emgSamples[i] = emg[i];
-            }
-        }
-    }
-    
-	void onAccelerometerData(myo::Myo* myo, uint64_t timestamp, const myo::Vector3<float>& accel)
-	{
-        Device * device = findDevice(myo);
-        if ( device ) {
-            device->accel.x = accel.x();
-            device->accel.y = accel.y();
-            device->accel.z = accel.z();
-        }
-	}
-    
-    
-	void onGyroscopeData(myo::Myo* myo, uint64_t timestamp, const myo::Vector3<float>& gyro)
-	{
-        
-        Device * device = findDevice(myo);
-        if ( device ) {
-            device->gyro.x = gyro.x();
-            device->gyro.y = gyro.y();
-            device->gyro.z = gyro.z();
-        }
-        
-	}
-    
-    void onOrientationData(myo::Myo* myo, uint64_t timestamp, const myo::Quaternion<float>& quat)
-    {
-        Device * device = findDevice(myo);
-        if ( device ) {
-            using std::atan2;
-            using std::asin;
-            using std::sqrt;
-            
-            // Calculate Euler angles (roll, pitch, and yaw) from the unit quaternion.
-            float roll = atan2(2.0f * (quat.w() * quat.x() + quat.y() * quat.z()),
-                               1.0f - 2.0f * (quat.x() * quat.x() + quat.y() * quat.y()));
-            float pitch = asin(2.0f * (quat.w() * quat.y() - quat.z() * quat.x()));
-            float yaw = atan2(2.0f * (quat.w() * quat.z() + quat.x() * quat.y()),
-                              1.0f - 2.0f * (quat.y() * quat.y() + quat.z() * quat.z()));
-            
-            device->q.set(quat.x(), quat.y(), quat.z(), quat.w());
-                          
-            device->roll = roll;
-            device->pitch = pitch;
-            device->yaw = yaw;
-            
-            
-            // Convert the floating point angles in radians to a scale from 0 to 20.
-            device->roll_w = static_cast<int>((roll + (float)M_PI)/(M_PI * 2.0f) * 18);
-            device->pitch_w = static_cast<int>((pitch + (float)M_PI/2.0f)/M_PI * 18);
-            device->yaw_w = static_cast<int>((yaw + (float)M_PI)/(M_PI * 2.0f) * 18);
-        }
-    }
-    
-    void onPose(myo::Myo* myo, uint64_t timestamp, myo::Pose pose)
-    {
-        Device * device = findDevice(myo);
-        if ( device ) {
-            device->currentPose = pose;
-//            if (pose == myo::Pose::fist) {
-//                myo->vibrate(myo::Myo::vibrationShort);
-//            }
-            
-        }
-    }
-    
-    void onArmSync(myo::Myo* myo, uint64_t timestamp, myo::Arm arm, myo::XDirection xDirection)
-    {
-        Device * device = findDevice(myo);
-        if ( device ) {
-            device->onArm = true;
-            device->whichArm = arm;
-        }
-    }
-    
-    void onArmUnsync(myo::Myo* myo, uint64_t timestamp)
-    {
-        
-        Device * device = findDevice(myo);
-        if ( device ) {
-            device->onArm = false;
-        }
-    }
-    
-    void onConnect(myo::Myo* myo, uint64_t timestamp, myo::FirmwareVersion firmwareVersion) {
-        myo->setStreamEmg(myo::Myo::streamEmgEnabled);
-        Device * device = findDevice(myo);
-        if ( device ) {
-            device->isConnect = true;
-        }
-    }
-    
-    void onDisconnect(myo::Myo* myo, uint64_t timestamp) {
-        Device * device = findDevice(myo);
-        if ( device ) {
-            device->isConnect = false;
-        }
-    }
-    
-    void onUnlock(myo::Myo* myo, uint64_t timestamp)
-    {
-        Device * device = findDevice(myo);
-        if ( device ) {
-            device->isUnlocked = true;
-        }
-    }
-    
-    void onLock(myo::Myo* myo, uint64_t timestamp)
-    {
-        Device * device = findDevice(myo);
-        if ( device ) {
-            device->isUnlocked = false;
-        }
-    }
-    
-    
-    
-    Device * findDevice(myo::Myo* myo){
-        for (int i = 0; i < devices.size(); ++i) {
-            if (devices[i]->myo == myo) {
-                return devices[i];
-            }
-        }
-        return 0;
-    }
+    DeviceCollector();
+    void onPair(myo::Myo* myo, uint64_t timestamp, myo::FirmwareVersion firmwareVersion);
+    void onUnpair(myo::Myo* myo, uint64_t timestamp);
+    void onEmgData(myo::Myo* myo, uint64_t timestamp, const int8_t* emg);
+    void onAccelerometerData(myo::Myo* myo, uint64_t timestamp, const myo::Vector3<float>& accel);
+    void onGyroscopeData(myo::Myo* myo, uint64_t timestamp, const myo::Vector3<float>& gyro);
+    void onOrientationData(myo::Myo* myo, uint64_t timestamp, const myo::Quaternion<float>& quat);
+    void onPose(myo::Myo* myo, uint64_t timestamp, myo::Pose pose);
+    void onArmSync(myo::Myo* myo, uint64_t timestamp, myo::Arm arm, myo::XDirection xDirection);
+    void onArmUnsync(myo::Myo* myo, uint64_t timestamp);
+    void onConnect(myo::Myo* myo, uint64_t timestamp, myo::FirmwareVersion firmwareVersion);
+    void onDisconnect(myo::Myo* myo, uint64_t timestamp) ;
+    void onUnlock(myo::Myo* myo, uint64_t timestamp);
+    void onLock(myo::Myo* myo, uint64_t timestamp);
+    Device * findDevice(myo::Myo* myo);
     
     
     std::vector<Device*> devices;
 };
+}
